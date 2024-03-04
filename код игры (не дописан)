@@ -1,5 +1,6 @@
 import pygame.freetype
 from pygame.time import Clock
+import random
 
 pygame.init()
 #создание игрового окна:
