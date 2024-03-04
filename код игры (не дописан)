@@ -1,4 +1,3 @@
-import random
 import pygame.freetype
 from pygame.time import Clock
 
@@ -8,34 +7,46 @@ screen = pygame.display.set_mode((900, 500))
 #название окна:
 pygame.display.set_caption('динозаврик pygame')
 clock: Clock = pygame.time.Clock()
+#установка нужного шрифта и размера:
 font = pygame.freetype.Font(None, 40)
-cactus_image = pygame.image.load('images/cactus.png')
-cactus_image = pygame.transform.scale(cactus_image, (50, 80))
-dino_image = pygame.image.load('images/T-Rex.png')
-dino_image = pygame.transform.scale(dino_image, (100, 100))
-ground_image = pygame.image.load('images/sand.png')
-ground_image = pygame.transform.scale(ground_image, (900, 42))
-ending_image = pygame.image.load('images/ending.jpg')
-ending_image = pygame.transform.scale(ending_image, (900, 500))
 
+#установка изображений:
+cactus_image = pygame.image.load('images/cactus.png') #кактус
+cactus_image = pygame.transform.scale(cactus_image, (50, 80))
+
+pterodactyl_image = pygame.image.load('images/pterodactyl.png') #птеродактиль
+pterodactyl_image = pygame.transform.scale(pterodactyl_image, (80, 60))
+
+dino_image = pygame.image.load('images/T-Rex.png') #динозавр
+dino_image = pygame.transform.scale(dino_image, (100, 100))
+
+ground_image = pygame.image.load('images/sand.png') #песок
+ground_image = pygame.transform.scale(ground_image, (900, 42))
+
+cloud_image = pygame.image.load('images/cloud.png') #облако
+cloud_image = pygame.transform.scale(cloud_image, (200, 100))
+
+
+#создание групп спрайтов:
 ground_group = pygame.sprite.Group()
 cactus_group = pygame.sprite.Group()
+pterodactyl_group = pygame.sprite.Group()
+cloud_group = pygame.sprite.Group()
 
 ground_event = pygame.USEREVENT
 cactus_event = pygame.USEREVENT + 1
-#постоянная генерация движущейся земли:
-pygame.time.set_timer(ground_event, 2500)
-pygame.time.set_timer(cactus_event, 5)
+pterodactyl_event = pygame.USEREVENT + 2
+cloud_event = pygame.USEREVENT + 3
 
 
-class Ending(pygame.sprite.Sprite):
-    def __init__(self, image, position):
-        super().__init__()
-        self.image = image
-        self.rect = self.image.get_rect()
-        self.rect.center = position
+#постоянная генерация движущихся объектов:
+pygame.time.set_timer(ground_event, 1700) #песок
+pygame.time.set_timer(cactus_event, 5) #кактус
+pygame.time.set_timer(pterodactyl_event, 11) #птеродактиль
+pygame.time.set_timer(cloud_event, 10) #облако
 
 
+#класс, отвечающий за землю:
 class Ground(pygame.sprite.Sprite):
     def __init__(self, image, position):
         super().__init__()
@@ -44,11 +55,26 @@ class Ground(pygame.sprite.Sprite):
         self.rect.center = position
 
     def update(self):
-        self.rect.x -= 3
+        self.rect.x -= 4
         if self.rect.right < 0:
             self.kill()
 
 
+#класс, отвечающий за облака:
+class Cloud(pygame.sprite.Sprite):
+    def __init__(self, image, position):
+        super().__init__()
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.center = position
+
+    def update(self):
+        self.rect.x -= 4
+        if self.rect.right < 0:
+            self.kill()
+
+
+#класс, отвечающий за кактусы:
 class Cactus(pygame.sprite.Sprite):
     def __init__(self, image, position):
         super().__init__()
@@ -57,7 +83,7 @@ class Cactus(pygame.sprite.Sprite):
         self.rect.center = position
 
     def update(self):
-        self.rect.x -= 3
+        self.rect.x -= 4
         if self.rect.right < 0:
             self.kill()
             dino.score += 1
@@ -65,21 +91,41 @@ class Cactus(pygame.sprite.Sprite):
             dino.game_status = 'Menu'
 
 
+#класс, отвечающий за птеродактелей:
+class Pterodactyl(pygame.sprite.Sprite):
+    def __init__(self, image, position):
+        super().__init__()
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.center = position
+
+    def update(self):
+        self.rect.x -= 4
+        if self.rect.right < 0:
+            self.kill()
+            dino.score += 1
+        if self.rect.colliderect(dino.rect):
+            dino.game_status = 'Menu'
+
+
+#класс, отвечающий за динозавра:
 class Dino():
     def __init__(self, image, position):
         self.image = image
         self.rect = self.image.get_rect()
         self.rect.center = position
-        self.y = 0
+        self.y = 1
         self.step = 8
-        self.max_jump = 50
+        self.max_jump = 35
         self.in_jump = False
         self.score = 0
         self.game_status = 'Game'
 
     def jump(self):
         if self.in_jump:
-            if self.y < self.max_jump:
+            if self.score == 0:
+                self.score = 1
+            elif self.y < self.max_jump:
                 self.y += 1
                 self.rect.y -= self.step
             elif self.y < self.max_jump * 2:
@@ -94,13 +140,12 @@ class Dino():
 
 
 dino = Dino(dino_image, (100, 400))
-g = Ground(ground_image, (300, 450))
-ground_group.add(g)
-g = Ground(ground_image, (900, 450))
+g = Ground(ground_image, (500, 450))
 ground_group.add(g)
 
 
 running = True
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -108,24 +153,47 @@ while running:
         if event.type == pygame.KEYDOWN:
             dino.in_jump = True
         if event.type == ground_event:
-            g = Ground(ground_image, (900, 450))
+            g = Ground(ground_image, (800, 450))
             ground_group.add(g)
+        if event.type == cloud_event:
+            # установка частоты появления облаков:
+            pygame.time.set_timer(cloud_event, random.randint(500, 2500))
+            a = random.randint(30, 330)
+            cloud = Cloud(cloud_image, (1000, a))
+            cloud_group.add(cloud)
         if event.type == cactus_event:
             #установка частоты появления кактусов:
             pygame.time.set_timer(cactus_event, random.randint(2000, 5000))
-            c = Cactus(cactus_image, (800, 400))
+            c = Cactus(cactus_image, (901, 405))
             cactus_group.add(c)
+        if event.type == pterodactyl_event:
+            # установка частоты появления птеродактелей:
+            pygame.time.set_timer(pterodactyl_event, random.randint(10000, 20000))
+            p = Pterodactyl(pterodactyl_image, (1500, 200))
+            pterodactyl_group.add(p)
 
     screen.fill((255, 255, 255))
+    
     if dino.game_status == 'Game':
+        #действия, выполняемые до столкновения персонажа с препятствием:
         ground_group.update()
         ground_group.draw(screen)
         cactus_group.update()
         cactus_group.draw(screen)
+        pterodactyl_group.update()
+        pterodactyl_group.draw(screen)
+        cloud_group.update()
+        cloud_group.draw(screen)
         dino.jump()
         dino.draw()
+        #счёт игрока - количество пройденных припятствий:
         font.render_to(screen, (650, 50), f"ваш счёт: {str(dino.score)}", (0, 0, 0))
+        
     else:
-        ...
+        #текст при проигрыше:
+        font.render_to(screen, (100, 200), 'Игра окночена.', (255, 0, 0))
+        font.render_to(screen, (100, 250), 'Для повторного запуска закройте окно', (0, 0, 0))
+        font.render_to(screen, (100, 300), 'и запустите программу снова', (0, 0, 0))
+
     pygame.display.flip()
     clock.tick(60)
